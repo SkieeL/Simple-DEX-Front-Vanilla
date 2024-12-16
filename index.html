@@ -1,0 +1,150 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Simple DEX</title>
+        <script src="https://cdn.tailwindcss.com"></script>        
+    </head>
+    <body class="bg-gray-100 font-sans">
+        <div class="container mx-auto p-6">
+            <h1 class="text-4xl font-bold text-center text-gray-800 mb-6">Simple DEX</h1>
+            <div class="text-center">
+              <button id="btnConnect" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition">Conectar wallet</button>
+              <button id="btnDisconnect" class="bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600 transition mt-4" style="display:none;">Desconectar</button>
+            </div>
+            <p id="status" class="text-center text-gray-600 mt-4">Estado: Desconectado</p>
+            
+            <!-- Mostrar balance de los tokens -->
+            <p id="tknABalance" style="display: none;" class="text-center text-xl text-gray-800 mt-6">Balance TKA: 0</p>
+            <p id="tknBBalance" style="display: none;" class="text-center text-xl text-gray-800 mt-6">Balance TKB: 0</p>
+
+            <!-- Formulario para agregar liquidez al DEX -->
+    
+            <div id="addLiquidityFields" style="display:none;" class="bg-white p-6 rounded-lg shadow-md mt-6">
+              <h2 class="text-2xl font-semibold text-gray-800 mb-4">Agregar liquidez al DEX</h2>
+
+              <label for="tokenAAmountToAdd" class="block text-gray-700 mt-4">Monto de TKA:</label>
+              <input type="number" id="tokenAAmountToAdd" placeholder="Monto en TKA" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              
+              <label for="tokenBAmountToAdd" class="block text-gray-700 mt-4">Monto de TKB:</label>
+              <input type="number" id="tokenBAmountToAdd" placeholder="Monto en TKB" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              
+              <button id="btnAddLiquidity" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4">Agregar liquidez</button>
+            </div>
+        </div>
+
+        <script type="module">
+          import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js";
+
+          let provider, signer, address, tokenABalance, tokenBBalance, formattedTokenABalance, formattedTokenBBalance, contractTokenA, contractTokenB, contractSimpleDEX;
+
+          const TOKEN_A_ADDRESS = "0x4143C6CE604bCB0249CDb8aF5A46867374B3Bf8F";
+          const TOKEN_B_ADDRESS = "0xf28a5786341F8f69b72907Edd5D22f974B8CC106";
+          const SIMPLE_DEX_ADDRESS = "0x89Ac0c9163ba78d25f56d7382011238a4cD28555";
+          const NETWORK_API = "https://api-sepolia.scrollscan.com/api?module=contract&action=getabi&address=";
+          
+          async function loadABI(contractAddress) {
+            let response = await fetch(NETWORK_API + contractAddress);
+            let abi = await response.json();
+            return abi.result;
+          }
+
+          async function connectWallet() {
+            // Verifica si hay una wallet disponible en el navegador
+            if (window.ethereum) {
+              await window.ethereum.request({ method: 'eth_requestAccounts' });
+              provider = new ethers.BrowserProvider(window.ethereum);
+              signer = await provider.getSigner();
+              address = await signer.getAddress();
+
+              const abiTokenA = await loadABI(TOKEN_A_ADDRESS);
+              const abiTokenB = await loadABI(TOKEN_B_ADDRESS);
+              const abiSimpleDEX = await loadABI(SIMPLE_DEX_ADDRESS);
+
+              contractTokenA = new ethers.Contract(TOKEN_A_ADDRESS, abiTokenA, signer);
+              contractTokenB = new ethers.Contract(TOKEN_B_ADDRESS, abiTokenB, signer);
+              contractSimpleDEX = new ethers.Contract(SIMPLE_DEX_ADDRESS, abiSimpleDEX, signer);
+
+              const decimalsTokenA = await contractTokenA.decimals();
+              tokenABalance = await contractTokenA.balanceOf(address);
+              formattedTokenABalance = ethers.formatUnits(tokenABalance, decimalsTokenA);
+
+              const decimalsTokenB = await contractTokenB.decimals();
+              tokenBBalance = await contractTokenB.balanceOf(address);
+              formattedTokenBBalance = ethers.formatUnits(tokenBBalance, decimalsTokenB);
+
+              document.getElementById('btnConnect').style.display = 'none';
+              document.getElementById('btnDisconnect').style.display = 'inline';
+
+              document.getElementById('status').innerText = `Estado: Conectado a la cuenta ${address}`;
+              document.getElementById('tknABalance').style.display = 'block';
+              document.getElementById('tknBBalance').style.display = 'block';
+              document.getElementById('addLiquidityFields').style.display = 'block';
+
+              document.getElementById('tknABalance').innerText = `Balance TKA: ${formattedTokenABalance}`;
+              document.getElementById('tknBBalance').innerText = `Balance TKB: ${formattedTokenBBalance}`;
+            }
+            else {
+              alert('ERROR: No se detectó ninguna wallet');
+              console.error('Wallet not detected');
+            }
+          }
+
+          async function disconnectWallet() {
+            provider = null;
+            signer = null;
+            address = null;
+            tokenABalance = 0;
+            tokenBBalance = 0;
+            formattedTokenABalance = 0;
+            formattedTokenBBalance = 0;
+
+            document.getElementById('status').innerText = "Estado: Desconectado";
+            document.getElementById('btnConnect').style.display = 'inline';
+            document.getElementById('btnDisconnect').style.display = 'none';   
+            document.getElementById('tknABalance').style.display = 'none';   
+            document.getElementById('tknBBalance').style.display = 'none';
+            document.getElementById('addLiquidityFields').style.display = 'none';
+          }
+
+          async function addLiquidity() {
+            const amountA = document.getElementById('tokenAAmountToAdd').value;
+            const amountB = document.getElementById('tokenBAmountToAdd').value;
+
+            if (isNaN(amountA) || amountA <= 0 || isNaN(amountB) || amountB <= 0) {
+              alert("Debe ingresar montos válidos");
+              return;
+            }
+
+            if (amountA > formattedTokenABalance || amountB > formattedTokenBBalance) {
+              alert("No tiene fondos suficientes");
+              return;
+            }
+            
+            try {
+              const decimalsTknA = await contractTokenA.decimals();
+              const amountAToSend = ethers.parseUnits(amountA, decimalsTknA);
+              const decimalsTknB = await contractTokenB.decimals();
+              const amountBToSend = ethers.parseUnits(amountB, decimalsTknB);
+
+              const txApprovalA = await contractTokenA.approve(SIMPLE_DEX_ADDRESS, amountAToSend);
+              const txApprovalB = await contractTokenB.approve(SIMPLE_DEX_ADDRESS, amountBToSend);
+              await txApprovalA.wait();
+              await txApprovalB.wait();
+              const tx = await contractSimpleDEX.addLiquidity(amountAToSend, amountBToSend);
+              await tx.wait();
+
+              alert(`Liquidez agregada exitosamente: ${tx.hash}`);
+            } catch (error) {
+              console.error('Error adding liquidity', error);
+              alert('Error al agregar liquidez', error?.data?.message);
+            }
+          }
+        
+          document.getElementById('btnConnect').addEventListener('click', connectWallet);
+          document.getElementById('btnDisconnect').addEventListener('click', disconnectWallet);
+          document.getElementById('btnAddLiquidity').addEventListener('click', addLiquidity);
+        </script>
+
+    </body>
+</html>
