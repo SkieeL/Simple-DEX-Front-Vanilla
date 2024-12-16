@@ -19,7 +19,6 @@
             <p id="tknBBalance" style="display: none;" class="text-center text-xl text-gray-800 mt-6">Balance TKB: 0</p>
 
             <!-- Formulario para agregar liquidez al DEX -->
-    
             <div id="addLiquidityFields" style="display:none;" class="bg-white p-6 rounded-lg shadow-md mt-6">
               <h2 class="text-2xl font-semibold text-gray-800 mb-4">Agregar liquidez al DEX</h2>
 
@@ -31,12 +30,57 @@
               
               <button id="btnAddLiquidity" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4">Agregar liquidez</button>
             </div>
+            
+            <!-- Formulario para remover liquidez del DEX -->
+            <div id="removeLiquidityFields" style="display:none;" class="bg-white p-6 rounded-lg shadow-md mt-6">
+              <h2 class="text-2xl font-semibold text-gray-800 mb-4">Retirar liquidez del DEX</h2>
+              
+              <label for="tokenAAmountToRemove" class="block text-gray-700 mt-4">Monto de TKA:</label>
+              <input type="number" id="tokenAAmountToRemove" placeholder="Monto en TKA" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              
+              <label for="tokenBAmountToRemove" class="block text-gray-700 mt-4">Monto de TKB:</label>
+              <input type="number" id="tokenBAmountToRemove" placeholder="Monto en TKB" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              
+              <button id="btnRemoveLiquidity" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4">Retirar liquidez</button>
+            </div>
+
+            <!-- Formulario para intercambiar tokens -->
+            <div id="swapTokensFields" style="display:none;" class="bg-white p-6 rounded-lg shadow-md mt-6">
+              <h2 class="text-2xl font-semibold text-gray-800 mb-4">Intercambiar tokens</h2>
+
+              <label for="tokenToSwap" class="block text-gray-700 mt-4">Token:</label>
+              <select id="tokenToSwap" placeholder="Seleccione un token" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="tka">TKA por TKB</option>
+                <option value="tkb">TKB por TKA</option>
+              </select>
+              
+              <label for="amountToSwap" class="block text-gray-700 mt-4">Monto a intercambiar:</label>
+              <input type="number" id="amountToSwap" placeholder="Monto en tokens" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              
+              <button id="btnSwapTokens" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4">Intercambiar tokens</button>
+            </div>
+
+            <!-- Formulario para consultar precio -->
+            <div id="getPriceFields" style="display:none;" class="bg-white p-6 rounded-lg shadow-md mt-6">
+              <h2 class="text-2xl font-semibold text-gray-800 mb-4">Consultar precio</h2>
+
+              <label for="tokenToGetPrice" class="block text-gray-700 mt-4">Token:</label>
+              <select id="tokenToGetPrice" placeholder="Seleccione un token" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option>TKA</option>
+                <option>TKB</option>
+              </select>
+
+              <p id="tknPrice" style="display: none;" class="text-center text-xl text-gray-800 mt-6"></p>
+              
+              <button id="btnGetPrice" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4">Consultar precio</button>
+            </div>
+
         </div>
 
         <script type="module">
           import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js";
 
-          let provider, signer, address, tokenABalance, tokenBBalance, formattedTokenABalance, formattedTokenBBalance, contractTokenA, contractTokenB, contractSimpleDEX;
+          let provider, signer, address, decimalsTokenA, decimalsTokenB, formattedTokenABalance, formattedTokenBBalance, contractTokenA, contractTokenB, contractSimpleDEX;
 
           const TOKEN_A_ADDRESS = "0x4143C6CE604bCB0249CDb8aF5A46867374B3Bf8F";
           const TOKEN_B_ADDRESS = "0xf28a5786341F8f69b72907Edd5D22f974B8CC106";
@@ -47,6 +91,16 @@
             let response = await fetch(NETWORK_API + contractAddress);
             let abi = await response.json();
             return abi.result;
+          }
+
+          async function reloadBalances() {
+            const tokenABalance = await contractTokenA.balanceOf(address);
+            const tokenBBalance = await contractTokenB.balanceOf(address);
+            formattedTokenABalance = ethers.formatUnits(tokenABalance, decimalsTokenA);
+            formattedTokenBBalance = ethers.formatUnits(tokenBBalance, decimalsTokenB);
+
+            document.getElementById('tknABalance').innerText = `Balance TKA: ${formattedTokenABalance}`;
+            document.getElementById('tknBBalance').innerText = `Balance TKB: ${formattedTokenBBalance}`;
           }
 
           async function connectWallet() {
@@ -64,29 +118,23 @@
               contractTokenA = new ethers.Contract(TOKEN_A_ADDRESS, abiTokenA, signer);
               contractTokenB = new ethers.Contract(TOKEN_B_ADDRESS, abiTokenB, signer);
               contractSimpleDEX = new ethers.Contract(SIMPLE_DEX_ADDRESS, abiSimpleDEX, signer);
+              decimalsTokenA = await contractTokenA.decimals();
+              decimalsTokenB = await contractTokenB.decimals();
 
-              const decimalsTokenA = await contractTokenA.decimals();
-              tokenABalance = await contractTokenA.balanceOf(address);
-              formattedTokenABalance = ethers.formatUnits(tokenABalance, decimalsTokenA);
-
-              const decimalsTokenB = await contractTokenB.decimals();
-              tokenBBalance = await contractTokenB.balanceOf(address);
-              formattedTokenBBalance = ethers.formatUnits(tokenBBalance, decimalsTokenB);
+              await reloadBalances();
 
               document.getElementById('btnConnect').style.display = 'none';
               document.getElementById('btnDisconnect').style.display = 'inline';
-
               document.getElementById('status').innerText = `Estado: Conectado a la cuenta ${address}`;
               document.getElementById('tknABalance').style.display = 'block';
               document.getElementById('tknBBalance').style.display = 'block';
               document.getElementById('addLiquidityFields').style.display = 'block';
-
-              document.getElementById('tknABalance').innerText = `Balance TKA: ${formattedTokenABalance}`;
-              document.getElementById('tknBBalance').innerText = `Balance TKB: ${formattedTokenBBalance}`;
+              document.getElementById('swapTokensFields').style.display = 'block';
+              document.getElementById('removeLiquidityFields').style.display = 'block';
+              document.getElementById('getPriceFields').style.display = 'block';
             }
             else {
               alert('ERROR: No se detectó ninguna wallet');
-              console.error('Wallet not detected');
             }
           }
 
@@ -94,8 +142,6 @@
             provider = null;
             signer = null;
             address = null;
-            tokenABalance = 0;
-            tokenBBalance = 0;
             formattedTokenABalance = 0;
             formattedTokenBBalance = 0;
 
@@ -105,6 +151,10 @@
             document.getElementById('tknABalance').style.display = 'none';   
             document.getElementById('tknBBalance').style.display = 'none';
             document.getElementById('addLiquidityFields').style.display = 'none';
+            document.getElementById('swapTokensFields').style.display = 'none';
+            document.getElementById('removeLiquidityFields').style.display = 'none';
+            document.getElementById('getPriceFields').style.display = 'none';
+            document.getElementById('tknPrice').style.display = 'none';
           }
 
           async function addLiquidity() {
@@ -116,23 +166,23 @@
               return;
             }
 
-            if (amountA > formattedTokenABalance || amountB > formattedTokenBBalance) {
+            if (parseFloat(amountA) > parseFloat(formattedTokenABalance) || parseFloat(amountB) > parseFloat(formattedTokenBBalance)) {
               alert("No tiene fondos suficientes");
               return;
             }
             
             try {
-              const decimalsTknA = await contractTokenA.decimals();
-              const amountAToSend = ethers.parseUnits(amountA, decimalsTknA);
-              const decimalsTknB = await contractTokenB.decimals();
-              const amountBToSend = ethers.parseUnits(amountB, decimalsTknB);
+              const amountAToSend = ethers.parseUnits(amountA, decimalsTokenA);
+              const amountBToSend = ethers.parseUnits(amountB, decimalsTokenB);
 
               const txApprovalA = await contractTokenA.approve(SIMPLE_DEX_ADDRESS, amountAToSend);
               const txApprovalB = await contractTokenB.approve(SIMPLE_DEX_ADDRESS, amountBToSend);
               await txApprovalA.wait();
               await txApprovalB.wait();
+
               const tx = await contractSimpleDEX.addLiquidity(amountAToSend, amountBToSend);
               await tx.wait();
+              await reloadBalances();
 
               alert(`Liquidez agregada exitosamente: ${tx.hash}`);
             } catch (error) {
@@ -141,9 +191,87 @@
             }
           }
         
+          async function removeLiquidity() {
+            const amountA = document.getElementById('tokenAAmountToRemove').value;
+            const amountB = document.getElementById('tokenBAmountToRemove').value;
+
+            if (isNaN(amountA) || amountA < 0 || isNaN(amountB) || amountB < 0) {
+              alert("Debe ingresar montos válidos");
+              return;
+            }
+            
+            try {
+              const amountAToRemove = ethers.parseUnits(amountA, decimalsTokenA);
+              const amountBToRemove = ethers.parseUnits(amountB, decimalsTokenB);
+
+              const tx = await contractSimpleDEX.removeLiquidity(amountAToRemove, amountBToRemove);
+              await tx.wait();
+              await reloadBalances();
+
+              alert(`Liquidez retirada exitosamente: ${tx.hash}`);
+            } catch (error) {
+              console.error('Error removing liquidity', error);
+              alert('Error al retirar liquidez', error?.data?.message);
+            }
+          }
+
+          async function swapTokens() {
+            const amount = document.getElementById('amountToSwap').value;
+            const tokenSeleccionado = document.getElementById('tokenToSwap').value;
+            const formattedBalance = (tokenSeleccionado == 'tka') ? formattedTokenABalance : formattedTokenBBalance;
+
+            if (isNaN(amount) || amount <= 0) {
+              alert("Debe ingresar un monto válido");
+              return;
+            }
+
+            if (amount > formattedBalance) {
+              alert("No tiene fondos suficientes");
+              return;
+            }
+            
+            try {
+              const decimals = (tokenSeleccionado == 'tka') ? decimalsTokenA : decimalsTokenB;
+              const amountToSwap = ethers.parseUnits(amount, decimals);
+
+              const txApproval = (tokenSeleccionado == 'tka') ? await contractTokenA.approve(SIMPLE_DEX_ADDRESS, amountToSwap) : await contractTokenB.approve(SIMPLE_DEX_ADDRESS, amountToSwap);
+              await txApproval.wait();
+
+              const tx = (tokenSeleccionado == 'tka') ? await contractSimpleDEX.swapAforB(amountToSwap) : await contractSimpleDEX.swapBforA(amountToSwap);
+              await tx.wait();
+              await reloadBalances();
+
+              alert(`Tokens intercambiados exitosamente: ${tx.hash}`);
+            } catch (error) {
+              console.error('Error swapping tokens', error);
+              alert('Error al intercambiar tokens', error?.data?.message);
+            }
+          }
+
+          async function getPrice() {
+            const tokenSeleccionado = document.getElementById('tokenToGetPrice').value;
+            const tokenNoSeleccionado = (tokenSeleccionado == 'TKA') ? 'TKB' : 'TKA';
+            const addressToConsult = (tokenSeleccionado == 'TKA') ? TOKEN_A_ADDRESS : TOKEN_B_ADDRESS;
+
+            try {
+              const value = await contractSimpleDEX.getPrice(addressToConsult);
+              const decimals = (tokenSeleccionado == 'TKA') ? decimalsTokenA : decimalsTokenB;
+              const formattedValue = ethers.formatUnits(value, decimals);
+
+              document.getElementById('tknPrice').innerText = `1.0 ${tokenSeleccionado} = ${formattedValue} ${tokenNoSeleccionado}`;
+              document.getElementById('tknPrice').style.display = 'block';
+            } catch (error) {
+              console.error('Error getting price', error);
+              alert('Error al consultar el precio', error?.data?.message);
+            }
+          }
+
           document.getElementById('btnConnect').addEventListener('click', connectWallet);
           document.getElementById('btnDisconnect').addEventListener('click', disconnectWallet);
           document.getElementById('btnAddLiquidity').addEventListener('click', addLiquidity);
+          document.getElementById('btnRemoveLiquidity').addEventListener('click', removeLiquidity);
+          document.getElementById('btnSwapTokens').addEventListener('click', swapTokens);
+          document.getElementById('btnGetPrice').addEventListener('click', getPrice);
         </script>
 
     </body>
