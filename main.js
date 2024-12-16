@@ -9,16 +9,6 @@ const TOKEN_A_ADDRESS = "0x4143C6CE604bCB0249CDb8aF5A46867374B3Bf8F";
 const TOKEN_B_ADDRESS = "0xf28a5786341F8f69b72907Edd5D22f974B8CC106";
 const SIMPLE_DEX_ADDRESS = "0x89Ac0c9163ba78d25f56d7382011238a4cD28555";
 
-async function reloadBalances() {
-    const tokenABalance = await contractTokenA.balanceOf(address);
-    const tokenBBalance = await contractTokenB.balanceOf(address);
-    formattedTokenABalance = ethers.formatUnits(tokenABalance, decimalsTokenA);
-    formattedTokenBBalance = ethers.formatUnits(tokenBBalance, decimalsTokenB);
-
-    document.getElementById('tknABalance').innerText = `Balance TKA: ${formattedTokenABalance}`;
-    document.getElementById('tknBBalance').innerText = `Balance TKB: ${formattedTokenBBalance}`;
-}
-
 async function connectWallet() {
     // Verifica si hay una wallet disponible en el navegador
     if (window.ethereum) {
@@ -50,7 +40,7 @@ async function connectWallet() {
     }
 }
 
-async function disconnectWallet() {
+function disconnectWallet() {
     provider = null;
     signer = null;
     address = null;
@@ -176,6 +166,16 @@ async function getPrice() {
         console.error('Error getting price', error);
         alert('Error al consultar el precio', error?.data?.message);
     }
+}
+
+async function reloadBalances() {
+    const tokenABalance = await contractTokenA.balanceOf(address);
+    const tokenBBalance = await contractTokenB.balanceOf(address);
+    formattedTokenABalance = ethers.formatUnits(tokenABalance, decimalsTokenA);
+    formattedTokenBBalance = ethers.formatUnits(tokenBBalance, decimalsTokenB);
+
+    document.getElementById('tknABalance').innerText = `Balance TKA: ${formattedTokenABalance}`;
+    document.getElementById('tknBBalance').innerText = `Balance TKB: ${formattedTokenBBalance}`;
 }
 
 document.getElementById('btnConnect').addEventListener('click', connectWallet);
