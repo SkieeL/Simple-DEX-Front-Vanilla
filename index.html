@@ -5,6 +5,7 @@
       <title>Simple DEX</title>
       <script src="https://cdn.tailwindcss.com"></script>
       <script src="main.js" type="module"></script>
+      <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="bg-gray-100 font-sans">
     <div class="container mx-auto p-6">
@@ -29,9 +30,11 @@
         <input type="number" id="tokenAAmountToAdd" placeholder="Monto en TKA" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
         
         <label for="tokenBAmountToAdd" class="block text-gray-700 mt-4">Monto de TKB:</label>
-        <input type="number" id="tokenBAmountToAdd" placeholder="Monto en TKB" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <input type="number" on id="tokenBAmountToAdd" placeholder="Monto en TKB" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
         
-        <button id="btnAddLiquidity" class="block justify-self-center bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4">Agregar liquidez</button>
+        <p id="addLiquidityErrors" class="errors"></p>
+
+        <button id="btnAddLiquidity" class="block justify-self-center bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4" disabled>Agregar liquidez</button>
       </div>
       
       <!-- Formulario para remover liquidez del DEX -->
@@ -44,7 +47,9 @@
         <label for="tokenBAmountToRemove" class="block text-gray-700 mt-4">Monto de TKB:</label>
         <input type="number" id="tokenBAmountToRemove" placeholder="Monto en TKB" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
         
-        <button id="btnRemoveLiquidity" class="block justify-self-center bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4">Retirar liquidez</button>
+        <p id="removeLiquidityErrors" class="errors"></p>
+
+        <button id="btnRemoveLiquidity" class="block justify-self-center bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4" disabled>Retirar liquidez</button>
       </div>
 
       <!-- Formulario para intercambiar tokens -->
@@ -60,7 +65,9 @@
         <label for="amountToSwap" class="block text-gray-700 mt-4">Monto a intercambiar:</label>
         <input type="number" id="amountToSwap" placeholder="Monto en tokens" class="w-full mt-2 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
         
-        <button id="btnSwapTokens" class="block justify-self-center bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4">Intercambiar tokens</button>
+        <p id="swapTokensErrors" class="errors"></p>
+
+        <button id="btnSwapTokens" class="block justify-self-center bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition mt-4" disabled>Intercambiar tokens</button>
       </div>
 
       <!-- Formulario para consultar precio -->

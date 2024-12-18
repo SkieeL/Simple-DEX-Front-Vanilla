@@ -10,7 +10,6 @@ const TOKEN_B_ADDRESS = "0xf28a5786341F8f69b72907Edd5D22f974B8CC106";
 const SIMPLE_DEX_ADDRESS = "0x89Ac0c9163ba78d25f56d7382011238a4cD28555";
 
 async function connectWallet() {
-    // Verifica si hay una wallet disponible en el navegador
     if (window.ethereum) {
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         provider = new ethers.BrowserProvider(window.ethereum);
@@ -63,16 +62,6 @@ async function addLiquidity() {
     const amountA = document.getElementById('tokenAAmountToAdd').value;
     const amountB = document.getElementById('tokenBAmountToAdd').value;
 
-    if (isNaN(amountA) || amountA <= 0 || isNaN(amountB) || amountB <= 0) {
-        alert("Debe ingresar montos válidos");
-        return;
-    }
-
-    if (parseFloat(amountA) > parseFloat(formattedTokenABalance) || parseFloat(amountB) > parseFloat(formattedTokenBBalance)) {
-        alert("No tiene fondos suficientes");
-        return;
-    }
-
     try {
         const amountAToSend = ethers.parseUnits(amountA, decimalsTokenA);
         const amountBToSend = ethers.parseUnits(amountB, decimalsTokenB);
@@ -88,19 +77,13 @@ async function addLiquidity() {
 
         alert(`Liquidez agregada exitosamente: ${tx.hash}`);
     } catch (error) {
-        console.error('Error adding liquidity', error);
-        alert('Error al agregar liquidez', error?.data?.message);
+        document.getElementById('addLiquidityErrors').innerText = "Error al agregar liquidez. " + error?.reason;
     }
 }
 
 async function removeLiquidity() {
     const amountA = document.getElementById('tokenAAmountToRemove').value;
     const amountB = document.getElementById('tokenBAmountToRemove').value;
-
-    if (isNaN(amountA) || amountA < 0 || isNaN(amountB) || amountB < 0) {
-        alert("Debe ingresar montos válidos");
-        return;
-    }
 
     try {
         const amountAToRemove = ethers.parseUnits(amountA, decimalsTokenA);
@@ -112,25 +95,13 @@ async function removeLiquidity() {
 
         alert(`Liquidez retirada exitosamente: ${tx.hash}`);
     } catch (error) {
-        console.error('Error removing liquidity', error);
-        alert('Error al retirar liquidez', error?.data?.message);
+        document.getElementById('removeLiquidityErrors').innerText = "Error al retirar liquidez. " + error?.reason;
     }
 }
 
 async function swapTokens() {
     const amount = document.getElementById('amountToSwap').value;
     const tokenSeleccionado = document.getElementById('tokenToSwap').value;
-    const formattedBalance = (tokenSeleccionado == 'tka') ? formattedTokenABalance : formattedTokenBBalance;
-
-    if (isNaN(amount) || amount <= 0) {
-        alert("Debe ingresar un monto válido");
-        return;
-    }
-
-    if (amount > formattedBalance) {
-        alert("No tiene fondos suficientes");
-        return;
-    }
 
     try {
         const decimals = (tokenSeleccionado == 'tka') ? decimalsTokenA : decimalsTokenB;
@@ -145,8 +116,7 @@ async function swapTokens() {
 
         alert(`Tokens intercambiados exitosamente: ${tx.hash}`);
     } catch (error) {
-        console.error('Error swapping tokens', error);
-        alert('Error al intercambiar tokens', error?.data?.message);
+        document.getElementById('swapTokensErrors').innerText = "Error al intercambiar tokens. " + error?.reason;
     }
 }
 
@@ -161,10 +131,10 @@ async function getPrice() {
         const formattedValue = ethers.formatUnits(value, decimals);
 
         document.getElementById('tknPrice').innerText = `1.0 ${tokenSeleccionado} = ${formattedValue} ${tokenNoSeleccionado}`;
-        document.getElementById('tknPrice').style.display = 'block';
     } catch (error) {
-        console.error('Error getting price', error);
-        alert('Error al consultar el precio', error?.data?.message);
+        document.getElementById('tknPrice').innerHTML = "<span style='color: red;'>Error al consultar precio. " + error?.reason + '</span>';
+    } finally {
+        document.getElementById('tknPrice').style.display = 'block';
     }
 }
 
@@ -184,3 +154,66 @@ document.getElementById('btnAddLiquidity').addEventListener('click', addLiquidit
 document.getElementById('btnRemoveLiquidity').addEventListener('click', removeLiquidity);
 document.getElementById('btnSwapTokens').addEventListener('click', swapTokens);
 document.getElementById('btnGetPrice').addEventListener('click', getPrice);
+
+document.getElementById('tokenAAmountToAdd').addEventListener('input', onInputAddLiquidity);
+document.getElementById('tokenBAmountToAdd').addEventListener('input', onInputAddLiquidity);
+document.getElementById('tokenAAmountToRemove').addEventListener('input', onInputRemoveLiquidity);
+document.getElementById('tokenBAmountToRemove').addEventListener('input', onInputRemoveLiquidity);
+document.getElementById('tokenToSwap').addEventListener('input', onInputSwapTokens);
+document.getElementById('amountToSwap').addEventListener('input', onInputSwapTokens);
+
+
+function onInputAddLiquidity() {
+    const errors = addLiquidityErrors();
+    document.getElementById('btnAddLiquidity').disabled = (errors !== false);
+    document.getElementById('addLiquidityErrors').innerText = (errors !== false) ? errors : "";
+}
+
+function onInputRemoveLiquidity() {
+    const errors = removeLiquidityErrors();
+    document.getElementById('btnRemoveLiquidity').disabled = (errors !== false);
+    document.getElementById('removeLiquidityErrors').innerText = (errors !== false) ? errors : "";
+}
+
+function onInputSwapTokens() {
+    const errors = swapTokensErrors();
+    document.getElementById('btnSwapTokens').disabled = (errors !== false);
+    document.getElementById('swapTokensErrors').innerText = (errors !== false) ? errors : "";
+}
+
+function addLiquidityErrors() {
+    const amountA = document.getElementById('tokenAAmountToAdd').value;
+    const amountB = document.getElementById('tokenBAmountToAdd').value;
+
+    if (isNaN(amountA) || amountA <= 0 || isNaN(amountB) || amountB <= 0) 
+        return "Monto inválido";
+
+    if (parseFloat(amountA) > parseFloat(formattedTokenABalance) || parseFloat(amountB) > parseFloat(formattedTokenBBalance))
+        return "Fondos insuficientes";
+
+    return false;
+}
+
+function removeLiquidityErrors() {
+    const amountA = document.getElementById('tokenAAmountToRemove').value;
+    const amountB = document.getElementById('tokenBAmountToRemove').value;
+
+    if (isNaN(amountA) || amountA < 0 || isNaN(amountB) || amountB < 0) 
+        return "Monto inválido";
+
+    return false;
+}
+
+function swapTokensErrors() {
+    const amount = document.getElementById('amountToSwap').value;
+    const tokenSeleccionado = document.getElementById('tokenToSwap').value;
+    const formattedBalance = (tokenSeleccionado == 'tka') ? formattedTokenABalance : formattedTokenBBalance;
+
+    if (isNaN(amount) || amount <= 0)
+        return "Debe ingresar un monto válido";
+
+    if (parseFloat(amount) > parseFloat(formattedBalance))
+        return "No tiene fondos suficientes";
+
+    return false;
+}
